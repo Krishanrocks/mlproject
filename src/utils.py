@@ -5,6 +5,7 @@ import dill
 import numpy as np 
 import pandas as pd 
 from sklearn.metrics import r2_score
+from sklearn.model_selection import GridSearchCV
 
 
 
@@ -22,49 +23,33 @@ def save_object(file_path, obj):
     except Exception as e:
         raise CustomException(e, sys)
 
-# def evaluate_model(X_train,y_train,X_test,y_test,models):
-#     try:
-#         report = {}
 
-#         for i in range(len(list(models))):
-#             model = list(models.values())[i]
-
-#             model.fit(X_train,y_train) # Train Model
-
-#             y_train_pred = model.predict(X_train)
-
-#             y_test_pred = model.predict(X_test)
-
-#             train_model_score = r2_score(y_train,y_train_pred)
-
-#             test_model_score = r2_score(y_test,y_test_pred)
-
-#             report[list(model.keys())[i]] = test_model_score
-
-#             return report
-#     except Exception as e:
-#         raise CustomException(e,sys)
     
 
-def evaluate_model(X_train, y_train, X_test, y_test, models):
-        try:
-            report = {}
+def evaluate_models(X_train, y_train, X_test, y_test, models, params):
+    try:
+        report = {}
+        trained_models = {}
 
-            for name, model in models.items():
-                model.fit(X_train, y_train)  # Train model
+        for name, model in models.items():
+            para = params.get(name, {})
+            gs = GridSearchCV(model, para, cv=3)
+            gs.fit(X_train, y_train)
 
-                y_train_pred = model.predict(X_train)
-                y_test_pred = model.predict(X_test)
+            best_model = gs.best_estimator_
 
-                train_model_score = r2_score(y_train, y_train_pred)
-                test_model_score = r2_score(y_test, y_test_pred)
+            y_train_pred = best_model.predict(X_train)
+            y_test_pred = best_model.predict(X_test)
 
-                report[name] = test_model_score  # Use model name as key
+            train_model_score = r2_score(y_train, y_train_pred)
+            test_model_score = r2_score(y_test, y_test_pred)
 
-            return report  # Return after all models are evaluated
+            report[name] = test_model_score
+            trained_models[name] = best_model  # ✅ Save trained model
 
-        except Exception as e:
-            raise CustomException(e, sys)
+        return report, trained_models
 
+    except Exception as e:
+        raise CustomException(e, sys)
 
 
